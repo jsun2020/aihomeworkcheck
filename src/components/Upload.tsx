@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { DoubaoAPIService } from '../services/doubaoAPI';
 import './Upload.css';
 
 interface User {
@@ -22,9 +23,10 @@ interface UploadProps {
     }>;
     totalCharCount: number;
   }) => void;
+  onNewAnalysisStarted: () => void;
 }
 
-const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete }) => {
+const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onNewAnalysisStarted }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
@@ -33,6 +35,9 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete }) =
 
   const handleFileSelect = (file: File) => {
     if (file && file.type.startsWith('image/')) {
+      // Clear any previous analysis results
+      onNewAnalysisStarted();
+      
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -78,41 +83,34 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete }) =
 
     setAnalyzing(true);
 
-    // Simulate AI analysis with mock data
-    setTimeout(() => {
-      const mockResult = {
+    try {
+      // Call Doubao API service
+      const analysisResult = await DoubaoAPIService.analyzeHomework({
+        imageData: previewUrl,
+        userLanguage: 'zh-CN'
+      });
+      
+      const result = {
         originalImage: previewUrl,
-        transcription: "今天的天气很好，我和朋友一起去公园玩。我们看到了许多美丽的花朵和绿色的草地。",
-        errors: [
-          {
-            wrong_char: "天",
-            suggested_char: "天",
-            confidence: "HIGH",
-            error_type: "CORRECT",
-            context: "今天的天气"
-          },
-          {
-            wrong_char: "气",
-            suggested_char: "气",
-            confidence: "HIGH", 
-            error_type: "CORRECT",
-            context: "天气很好"
-          },
-          {
-            wrong_char: "朋",
-            suggested_char: "朋",
-            confidence: "MEDIUM",
-            error_type: "STROKE",
-            context: "我和朋友"
-          }
-        ],
-        totalCharCount: 42
+        transcription: analysisResult.full_transcription,
+        errors: analysisResult.errors.map(error => ({
+          wrong_char: error.wrong_char,
+          suggested_char: error.suggested_char,
+          confidence: error.confidence,
+          error_type: error.error_type,
+          context: error.context
+        })),
+        totalCharCount: analysisResult.total_char_count
       };
 
-      onAnalysisComplete(mockResult);
+      onAnalysisComplete(result);
       setAnalyzing(false);
       navigate('/results');
-    }, 3000);
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      setAnalyzing(false);
+      alert('Analysis failed. Please try again.');
+    }
   };
 
   const clearSelection = () => {

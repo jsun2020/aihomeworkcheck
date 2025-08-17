@@ -40,6 +40,10 @@ function App() {
     setAnalysisResult(result);
   };
 
+  const handleNewAnalysisStarted = () => {
+    setAnalysisResult(null);
+  };
+
   return (
     <Router>
       <div className="App">
@@ -59,6 +63,7 @@ function App() {
                 user={user} 
                 onLogout={handleLogout}
                 onAnalysisComplete={handleAnalysisComplete}
+                onNewAnalysisStarted={handleNewAnalysisStarted}
               /> : 
               <Navigate to="/login" replace />
             } 
