@@ -93,7 +93,7 @@ const Results: React.FC<ResultsProps> = ({ user, analysisResult, onLogout }) => 
               <div className="stat-item">
                 <label>Accuracy:</label>
                 <span>
-                  {((analysisResult.errors.filter(error => error.error_type === 'CORRECT').length / analysisResult.errors.length) * 100).toFixed(1)}%
+                  {(((analysisResult.totalCharCount - analysisResult.errors.filter(error => error.error_type !== 'CORRECT').length) / analysisResult.totalCharCount) * 100).toFixed(1)}%
                 </span>
               </div>
             </div>
