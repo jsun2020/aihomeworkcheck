@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm start)",
+      "Bash(npm install:*)",
+      "Bash(npx react-scripts:*)",
+      "Bash(npx create-react-app:*)",
+      "Bash(rmdir:*)",
+      "Bash(rd:*)",
+      "Bash(rm:*)",
+      "Bash(set PORT=3001)",
+      "Bash(taskkill:*)",
+      "Bash(cross-env:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
