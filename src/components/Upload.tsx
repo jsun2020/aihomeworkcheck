@@ -84,10 +84,24 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
     setAnalyzing(true);
 
     try {
+      // Determine user preferred language from saved settings
+      let userLanguage: 'zh-CN' | 'en-US' = 'en-US';
+      const savedSettings = localStorage.getItem(`userSettings_${user.id}`);
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings);
+          if (parsed.language === 'zh-CN' || parsed.language === 'en-US') {
+            userLanguage = parsed.language;
+          }
+        } catch {
+          // ignore parse errors and use default
+        }
+      }
+
       // Call Doubao API service
       const analysisResult = await DoubaoAPIService.analyzeHomework({
         imageData: previewUrl,
-        userLanguage: 'zh-CN',
+        userLanguage,
         userId: user.id
       });
       
