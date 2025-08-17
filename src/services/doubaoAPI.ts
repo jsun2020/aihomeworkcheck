@@ -4,6 +4,8 @@
 interface DoubaoAnalysisRequest {
   imageData: string;
   userLanguage: 'zh-CN' | 'en-US';
+  userId?: string;
+  customApiKey?: string;
 }
 
 interface DoubaoAnalysisResponse {
@@ -30,14 +32,29 @@ export class DoubaoAPIService {
   private static readonly MODEL = 'doubao-seed-1-6-flash-250715';
 
   static async analyzeHomework(request: DoubaoAnalysisRequest): Promise<DoubaoAnalysisResponse> {
-    const apiKey = process.env.REACT_APP_ARK_API_KEY;
+    // Priority: Custom API key > User's saved key > Environment key
+    let apiKey = request.customApiKey;
+    
+    if (!apiKey && request.userId) {
+      // Try to get user's saved API key
+      const userSettings = localStorage.getItem(`userSettings_${request.userId}`);
+      if (userSettings) {
+        const settings = JSON.parse(userSettings);
+        apiKey = settings.apiKey;
+      }
+    }
+    
+    if (!apiKey) {
+      // Fallback to environment key
+      apiKey = process.env.REACT_APP_ARK_API_KEY;
+    }
     
     if (!apiKey || apiKey === 'your_ark_api_key_here') {
-      throw new Error('ARK_API_KEY not configured. Please set your API key in the .env file.');
+      throw new Error('No API key configured. Please set your API key in Settings or contact administrator.');
     }
 
     console.log('Calling real Doubao API with image data...');
-    return await this.callRealDoubaoAPI(request);
+    return await this.callRealDoubaoAPI({ ...request, customApiKey: apiKey });
   }
 
 
@@ -93,7 +110,7 @@ export class DoubaoAPIService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_ARK_API_KEY}`
+          'Authorization': `Bearer ${request.customApiKey}`
         },
         body: JSON.stringify(payload)
       });

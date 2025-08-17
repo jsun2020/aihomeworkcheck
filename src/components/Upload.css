@@ -29,6 +29,7 @@
   font-size: 14px;
 }
 
+.settings-button,
 .logout-button {
   background: rgba(255, 255, 255, 0.2);
   color: white;
@@ -37,6 +38,7 @@
   font-size: 14px;
 }
 
+.settings-button:hover,
 .logout-button:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);

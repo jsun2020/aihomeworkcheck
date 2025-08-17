@@ -87,7 +87,8 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
       // Call Doubao API service
       const analysisResult = await DoubaoAPIService.analyzeHomework({
         imageData: previewUrl,
-        userLanguage: 'zh-CN'
+        userLanguage: 'zh-CN',
+        userId: user.id
       });
       
       const result = {
@@ -124,6 +125,7 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
         <h1>AI Homework Checker</h1>
         <div className="user-info">
           <span>Welcome, {user.username}</span>
+          <button onClick={() => navigate('/settings')} className="settings-button">⚙️ Settings</button>
           <button onClick={onLogout} className="logout-button">Logout</button>
         </div>
       </header>

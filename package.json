@@ -17,7 +17,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy": "npm run build",
+    "preview": "npm run build && npx serve -s build"
   },
   "eslintConfig": {
     "extends": [

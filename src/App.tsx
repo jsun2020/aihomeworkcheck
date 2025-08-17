@@ -4,6 +4,7 @@ import './App.css';
 import Login from './components/Login';
 import Upload from './components/Upload';
 import Results from './components/Results';
+import Settings from './components/Settings';
 
 interface User {
   id: string;
@@ -75,6 +76,17 @@ function App() {
               <Results 
                 user={user}
                 analysisResult={analysisResult}
+                onLogout={handleLogout}
+              /> : 
+              <Navigate to="/login" replace />
+            } 
+          />
+          <Route 
+            path="/settings" 
+            element={
+              user ? 
+              <Settings 
+                user={user}
                 onLogout={handleLogout}
               /> : 
               <Navigate to="/login" replace />

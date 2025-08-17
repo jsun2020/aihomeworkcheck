@@ -35,6 +35,43 @@ AI-powered Chinese homework checking web application using Doubao API.
 4. **Open Browser**
    Navigate to `http://localhost:3002`
 
+## User Features
+
+### Account Settings
+- **Custom API Key**: Users can configure their own Doubao API key
+- **Settings Page**: Access via ⚙️ Settings button in the upload page
+- **API Key Testing**: Verify API key validity before saving
+- **Local Storage**: API keys stored securely in browser (not on servers)
+
+### API Key Priority
+1. **User's Custom Key** (highest priority)
+2. **Environment Variable** (fallback)
+3. **Error** if no key available
+
+## Deployment
+
+### Vercel Deployment
+1. **Push to GitHub**
+   ```bash
+   git push origin main
+   ```
+
+2. **Deploy to Vercel**
+   - Import project from GitHub
+   - Set environment variable: `REACT_APP_ARK_API_KEY`
+   - Deploy automatically
+
+3. **Cloudflare Pages**
+   - Connect GitHub repository
+   - Build command: `npm run build`
+   - Build output directory: `build`
+   - Environment variable: `REACT_APP_ARK_API_KEY`
+
+### Environment Variables
+```
+REACT_APP_ARK_API_KEY=your_production_api_key
+```
+
 ## API Integration
 
 This application uses the Doubao API (`doubao-seed-1-6-flash-250715`) for Chinese text recognition:
