@@ -32,6 +32,11 @@ export const translations = {
     'upload.selectImageFirst': 'Please select an image first',
     'upload.analysisFailed': 'Analysis failed. Please try again.',
     'upload.validImageOnly': 'Please select a valid image file',
+    'upload.preparingImage': 'Preparing image...',
+    'upload.sendingToAI': 'Sending to AI for analysis...',
+    'upload.processingResults': 'Processing results...',
+    'upload.timeoutError': 'Request timeout. Please check your network and try again.',
+    'upload.optimizedProcessing': 'Using optimized processing for faster results',
     
     // Settings
     'settings.title': 'Account Settings',
@@ -117,6 +122,11 @@ export const translations = {
     'upload.selectImageFirst': '请先选择一张图片',
     'upload.analysisFailed': '分析失败，请重试。',
     'upload.validImageOnly': '请选择有效的图片文件',
+    'upload.preparingImage': '正在准备图片...',
+    'upload.sendingToAI': '正在发送给AI分析...',
+    'upload.processingResults': '正在处理结果...',
+    'upload.timeoutError': '请求超时，请检查网络连接后重试。',
+    'upload.optimizedProcessing': '使用优化处理以获得更快结果',
     
     // Settings
     'settings.title': '账户设置',

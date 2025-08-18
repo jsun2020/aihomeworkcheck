@@ -32,6 +32,65 @@ interface DoubaoAnalysisResponse {
 export class DoubaoAPIService {
   private static readonly API_ENDPOINT = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
   private static readonly MODEL = 'doubao-seed-1-6-flash-250715';
+  private static readonly REQUEST_TIMEOUT = 60000; // 60秒超时
+  private static readonly MAX_IMAGE_SIZE = 1024 * 1024; // 1MB最大图片大小
+
+  // 压缩图片以提高上传速度
+  private static async compressImage(imageData: string): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        
+        // 计算压缩后的尺寸，保持宽高比
+        let { width, height } = img;
+        const maxDimension = 1200; // 最大尺寸
+        
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = (height * maxDimension) / width;
+            width = maxDimension;
+          } else {
+            width = (width * maxDimension) / height;
+            height = maxDimension;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 绘制压缩后的图片
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // 转换为JPEG格式，质量0.8
+        const compressedData = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(compressedData);
+      };
+      img.src = imageData;
+    });
+  }
+
+  // 添加超时控制的fetch
+  private static async fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout - please try again');
+      }
+      throw error;
+    }
+  }
 
   static async analyzeHomework(request: DoubaoAnalysisRequest): Promise<DoubaoAnalysisResponse> {
     // Priority: Custom API key > User's saved key > Environment key
@@ -99,25 +158,28 @@ export class DoubaoAPIService {
 
 
   private static async callRealDoubaoAPI(request: DoubaoAnalysisRequest): Promise<DoubaoAnalysisResponse> {
-    const prompt = `你是一位精通中文语言文字的校对专家，尤其擅长识别和修正由OCR（光学字符识别）技术产生的文本错误。你对中文的同音字、形近字以及词语的语境应用有深刻的理解。
-
-请分析这张小学生作业图片，识别其中的错别字。请返回一个JSON格式的结果，结构如下：
+    // 压缩图片以提高上传速度
+    console.log('Compressing image...');
+    const compressedImageData = await this.compressImage(request.imageData);
+    
+    // 优化后的简洁prompt
+    const prompt = `分析图片中的中文文字，找出错别字。返回JSON格式：
 {
-  "total_char_count": <字符总数>,
-  "full_transcription": "<完整的文本转录>",
-  "confidence_score": <0-1之间的置信度>,
+  "total_char_count": <数字>,
+  "full_transcription": "<文本>",
+  "confidence_score": <0-1>,
   "response_language": "${request.userLanguage}",
   "errors": [
     {
-      "wrong_char": "<错误的字符>",
-      "suggested_char": "<正确的字符>", 
+      "wrong_char": "<错字>",
+      "suggested_char": "<正字>", 
       "confidence": "<HIGH|MEDIUM|LOW>",
-      "error_type": "<STROKE|RADICAL|PHONETIC|SEMANTIC>",
+      "error_type": "<STROKE|RADICAL|PHONETIC|SEMANTIC|CORRECT>",
       "context": "<上下文>",
-      "position": {"line": <行号>, "char": <字符位置>}
+      "position": {"line": <行>, "char": <位置>}
     }
   ],
-  "quality_issues": ["<图片质量问题>"]
+  "quality_issues": ["<问题>"]
 }`;
 
     const payload = {
@@ -129,7 +191,8 @@ export class DoubaoAPIService {
             {
               type: "image_url",
               image_url: {
-                url: request.imageData
+                url: compressedImageData,
+                detail: "low" // 使用低细节模式加快处理速度
               }
             },
             {
@@ -139,21 +202,23 @@ export class DoubaoAPIService {
           ]
         }
       ],
-      temperature: 0.3,
-      max_tokens: 2000
+      temperature: 0.1, // 降低温度提高确定性和速度
+      max_tokens: 1000, // 减少token数量
+      stream: false // 确保不使用流式响应
     };
 
-    console.log('Sending request to Doubao API:', this.API_ENDPOINT);
+    console.log('Sending optimized request to Doubao API...');
 
     try {
-      const response = await fetch(this.API_ENDPOINT, {
+      const response = await this.fetchWithTimeout(this.API_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${request.customApiKey}`
+          'Authorization': `Bearer ${request.customApiKey}`,
+          'Accept': 'application/json'
         },
         body: JSON.stringify(payload)
-      });
+      }, this.REQUEST_TIMEOUT);
 
       if (!response.ok) {
         const errorText = await response.text();

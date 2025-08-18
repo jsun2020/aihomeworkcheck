@@ -38,6 +38,15 @@
   font-size: 12px !important;
 }
 
+.progress-tip {
+  display: block;
+  margin-top: 10px;
+  color: #666;
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+}
+
 .settings-button,
 .logout-button {
   background: rgba(255, 255, 255, 0.2);

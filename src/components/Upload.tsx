@@ -32,6 +32,7 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState<'zh-CN' | 'en-US'>('en-US');
   const navigate = useNavigate();
@@ -97,11 +98,14 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
     }
 
     setAnalyzing(true);
+    setAnalysisStep(t('upload.preparingImage', currentLanguage));
 
     try {
       // Get user's language preference from localStorage
       const savedSettings = localStorage.getItem(`userSettings_${user.id}`);
       const userLanguage = savedSettings ? JSON.parse(savedSettings).language || 'en-US' : 'en-US';
+      
+      setAnalysisStep(t('upload.sendingToAI', currentLanguage));
       
       // Call Doubao API service
       const analysisResult = await DoubaoAPIService.analyzeHomework({
@@ -109,6 +113,8 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
         userLanguage: userLanguage,
         userId: user.id
       });
+
+      setAnalysisStep(t('upload.processingResults', currentLanguage));
 
       // 增加使用次数（只有在使用演示模式时才计数）
       const usageInfo = UsageTracker.getUsageInfo(user.id);
@@ -131,11 +137,20 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
 
       onAnalysisComplete(result);
       setAnalyzing(false);
+      setAnalysisStep('');
       navigate('/results');
     } catch (error) {
       console.error('Analysis failed:', error);
       setAnalyzing(false);
-      alert(t('upload.analysisFailed', currentLanguage));
+      setAnalysisStep('');
+      
+      // 更详细的错误信息
+      const errorMessage = error instanceof Error ? error.message : t('upload.analysisFailed', currentLanguage);
+      if (errorMessage.includes('timeout')) {
+        alert(t('upload.timeoutError', currentLanguage));
+      } else {
+        alert(errorMessage);
+      }
     }
   };
 
@@ -223,10 +238,13 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
 
         {analyzing && (
           <div className="analysis-progress">
-            <p>{t('upload.analysisProgress', currentLanguage)}</p>
+            <p>{analysisStep || t('upload.analysisProgress', currentLanguage)}</p>
             <div className="progress-bar">
               <div className="progress-fill"></div>
             </div>
+            <small className="progress-tip">
+              {t('upload.optimizedProcessing', currentLanguage)}
+            </small>
           </div>
         )}
       </main>
