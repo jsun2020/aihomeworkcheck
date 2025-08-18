@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DoubaoAPIService } from '../services/doubaoAPI';
+import { t, getCurrentLanguage } from '../utils/i18n';
+import { UsageTracker } from '../utils/usageTracker';
 import './Upload.css';
 
 interface User {
@@ -31,7 +33,13 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState<'zh-CN' | 'en-US'>('en-US');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // 获取用户的语言设置
+    setCurrentLanguage(getCurrentLanguage(user.id));
+  }, [user.id]);
 
   const handleFileSelect = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -45,7 +53,7 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
       };
       reader.readAsDataURL(file);
     } else {
-      alert('Please select a valid image file');
+      alert(t('upload.validImageOnly', currentLanguage));
     }
   };
 
@@ -77,19 +85,36 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
 
   const handleAnalyze = async () => {
     if (!selectedFile) {
-      alert('Please select an image first');
+      alert(t('upload.selectImageFirst', currentLanguage));
+      return;
+    }
+
+    // 检查使用次数限制
+    if (!UsageTracker.canUseService(user.id)) {
+      alert(t('settings.upgradeRequired', currentLanguage));
+      navigate('/settings');
       return;
     }
 
     setAnalyzing(true);
 
     try {
+      // Get user's language preference from localStorage
+      const savedSettings = localStorage.getItem(`userSettings_${user.id}`);
+      const userLanguage = savedSettings ? JSON.parse(savedSettings).language || 'en-US' : 'en-US';
+      
       // Call Doubao API service
       const analysisResult = await DoubaoAPIService.analyzeHomework({
         imageData: previewUrl,
-        userLanguage: 'zh-CN',
+        userLanguage: userLanguage,
         userId: user.id
       });
+
+      // 增加使用次数（只有在使用演示模式时才计数）
+      const usageInfo = UsageTracker.getUsageInfo(user.id);
+      if (!usageInfo.hasCustomKey) {
+        UsageTracker.incrementUsage(user.id);
+      }
       
       const result = {
         originalImage: previewUrl,
@@ -110,7 +135,7 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
     } catch (error) {
       console.error('Analysis failed:', error);
       setAnalyzing(false);
-      alert('Analysis failed. Please try again.');
+      alert(t('upload.analysisFailed', currentLanguage));
     }
   };
 
@@ -119,19 +144,27 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
     setPreviewUrl('');
   };
 
+  const remainingUsage = UsageTracker.getRemainingUsage(user.id);
+  const usageInfo = UsageTracker.getUsageInfo(user.id);
+
   return (
     <div className="upload-container">
       <header className="upload-header">
-        <h1>AI Homework Checker</h1>
+        <h1>{t('app.title', currentLanguage)}</h1>
         <div className="user-info">
-          <span>Welcome, {user.username}</span>
-          <button onClick={() => navigate('/settings')} className="settings-button">⚙️ Settings</button>
-          <button onClick={onLogout} className="logout-button">Logout</button>
+          <span>{t('header.welcome', currentLanguage)}, {user.username}</span>
+          {!usageInfo.hasCustomKey && (
+            <span className="usage-info">
+              ({t('settings.usageRemaining', currentLanguage)}: {remainingUsage})
+            </span>
+          )}
+          <button onClick={() => navigate('/settings')} className="settings-button">⚙️ {t('header.settings', currentLanguage)}</button>
+          <button onClick={onLogout} className="logout-button">{t('header.logout', currentLanguage)}</button>
         </div>
       </header>
 
       <main className="upload-main">
-        <h2>Upload Homework Image for Analysis</h2>
+        <h2>{t('upload.title', currentLanguage)}</h2>
         
         <div 
           className={`upload-area ${dragOver ? 'drag-over' : ''}`}
@@ -142,7 +175,7 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
           {!previewUrl ? (
             <div className="upload-placeholder">
               <div className="upload-icon">📁</div>
-              <p>Drag and drop an image here, or click to select</p>
+              <p>{t('upload.dragDrop', currentLanguage)}</p>
               <input
                 type="file"
                 accept="image/*"
@@ -151,14 +184,14 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
                 id="file-input"
               />
               <label htmlFor="file-input" className="file-input-label">
-                Choose File
+                {t('upload.chooseFile', currentLanguage)}
               </label>
             </div>
           ) : (
             <div className="preview-container">
               <img src={previewUrl} alt="Preview" className="preview-image" />
               <button onClick={clearSelection} className="clear-button">
-                ✕ Clear
+                ✕ {t('upload.clear', currentLanguage)}
               </button>
             </div>
           )}
@@ -166,8 +199,8 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
 
         {selectedFile && (
           <div className="file-info">
-            <p><strong>Selected file:</strong> {selectedFile.name}</p>
-            <p><strong>Size:</strong> {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+            <p><strong>{t('upload.selectedFile', currentLanguage)}</strong> {selectedFile.name}</p>
+            <p><strong>{t('upload.size', currentLanguage)}</strong> {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
           </div>
         )}
 
@@ -175,22 +208,22 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
           <button 
             onClick={handleAnalyze}
             className="analyze-button"
-            disabled={!selectedFile || analyzing}
+            disabled={!selectedFile || analyzing || (!usageInfo.hasCustomKey && remainingUsage === 0)}
           >
             {analyzing ? (
               <span>
                 <span className="spinner"></span>
-                Analyzing...
+                {t('upload.analyzing', currentLanguage)}
               </span>
             ) : (
-              'Upload & Analyze'
+              t('upload.uploadAnalyze', currentLanguage)
             )}
           </button>
         </div>
 
         {analyzing && (
           <div className="analysis-progress">
-            <p>AI is analyzing your homework image...</p>
+            <p>{t('upload.analysisProgress', currentLanguage)}</p>
             <div className="progress-bar">
               <div className="progress-fill"></div>
             </div>

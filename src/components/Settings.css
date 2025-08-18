@@ -139,6 +139,41 @@
   border-color: #667eea;
 }
 
+.api-key-display {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e1e5e9;
+  border-radius: 6px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: none;
+}
+
+.masked-key {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #666;
+  letter-spacing: 2px;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: none;
+}
+
+.key-info {
+  font-size: 12px;
+  color: #999;
+  font-style: italic;
+}
+
 .toggle-visibility {
   background: #f8f9fa;
   border: 2px solid #e1e5e9;
@@ -296,6 +331,32 @@
 
 .info-section li strong {
   color: #333;
+}
+
+.demo-mode-info {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.demo-mode-info h3 {
+  color: #856404;
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.demo-mode-info p {
+  color: #856404;
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+.upgrade-notice {
+  color: #dc3545 !important;
+  font-weight: 600 !important;
 }
 
 /* Mobile responsiveness */

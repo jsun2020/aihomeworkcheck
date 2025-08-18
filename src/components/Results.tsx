@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { t, getCurrentLanguage } from '../utils/i18n';
 import './Results.css';
 
 interface User {
@@ -28,6 +29,11 @@ interface ResultsProps {
 
 const Results: React.FC<ResultsProps> = ({ user, analysisResult, onLogout }) => {
   const navigate = useNavigate();
+  const [currentLanguage, setCurrentLanguage] = useState<'zh-CN' | 'en-US'>('en-US');
+
+  useEffect(() => {
+    setCurrentLanguage(getCurrentLanguage(user.id));
+  }, [user.id]);
 
   const getConfidenceColor = (confidence: string) => {
     switch (confidence) {
@@ -56,10 +62,10 @@ const Results: React.FC<ResultsProps> = ({ user, analysisResult, onLogout }) => 
   return (
     <div className="results-container">
       <header className="results-header">
-        <h1>AI Homework Checker</h1>
+        <h1>{t('app.title', currentLanguage)}</h1>
         <div className="user-info">
-          <span>Welcome, {user.username}</span>
-          <button onClick={onLogout} className="logout-button">Logout</button>
+          <span>{t('header.welcome', currentLanguage)}, {user.username}</span>
+          <button onClick={onLogout} className="logout-button">{t('header.logout', currentLanguage)}</button>
         </div>
       </header>
 
@@ -67,7 +73,7 @@ const Results: React.FC<ResultsProps> = ({ user, analysisResult, onLogout }) => 
         <div className="results-layout">
           {/* Left side - Original Image */}
           <div className="original-image-section">
-            <h2>Original Homework</h2>
+            <h2>{t('results.originalImage', currentLanguage)}</h2>
             <div className="image-container">
               <img 
                 src={analysisResult.originalImage} 
@@ -79,15 +85,15 @@ const Results: React.FC<ResultsProps> = ({ user, analysisResult, onLogout }) => 
 
           {/* Right side - Analysis Results */}
           <div className="analysis-section">
-            <h2>Analysis Results</h2>
+            <h2>{t('results.title', currentLanguage)}</h2>
             
             <div className="stats-summary">
               <div className="stat-item">
-                <label>Total Characters:</label>
+                <label>{t('results.totalCharacters', currentLanguage)}</label>
                 <span>{analysisResult.totalCharCount}</span>
               </div>
               <div className="stat-item">
-                <label>Issues Found:</label>
+                <label>{t('results.errorsFound', currentLanguage)}:</label>
                 <span>{analysisResult.errors.filter(error => error.error_type !== 'CORRECT').length}</span>
               </div>
               <div className="stat-item">
@@ -99,7 +105,7 @@ const Results: React.FC<ResultsProps> = ({ user, analysisResult, onLogout }) => 
             </div>
 
             <div className="transcription-section">
-              <h3>Transcribed Text</h3>
+              <h3>{t('results.transcription', currentLanguage)}</h3>
               <div className="transcription-text">
                 {analysisResult.transcription}
               </div>
@@ -145,7 +151,7 @@ const Results: React.FC<ResultsProps> = ({ user, analysisResult, onLogout }) => 
                 onClick={handleNewAnalysis}
                 className="new-analysis-button"
               >
-                Analyze Another Image
+                {t('results.backToUpload', currentLanguage)}
               </button>
               <button 
                 onClick={() => window.print()}

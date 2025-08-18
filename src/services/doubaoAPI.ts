@@ -1,6 +1,8 @@
 // Doubao API Integration Service
 // This service handles communication with the Doubao AI model for Chinese text recognition
 
+import { UsageTracker } from '../utils/usageTracker';
+
 interface DoubaoAnalysisRequest {
   imageData: string;
   userLanguage: 'zh-CN' | 'en-US';
@@ -44,6 +46,12 @@ export class DoubaoAPIService {
       }
     }
     
+    // Check if using demo mode
+    if (!apiKey || UsageTracker.isDefaultApiKey(apiKey)) {
+      console.log('Using demo mode...');
+      return await this.callDemoAPI(request);
+    }
+    
     if (!apiKey) {
       // Fallback to environment key
       apiKey = process.env.REACT_APP_ARK_API_KEY;
@@ -55,6 +63,38 @@ export class DoubaoAPIService {
 
     console.log('Calling real Doubao API with image data...');
     return await this.callRealDoubaoAPI({ ...request, customApiKey: apiKey });
+  }
+
+  private static async callDemoAPI(request: DoubaoAnalysisRequest): Promise<DoubaoAnalysisResponse> {
+    // 模拟API调用延迟
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // 返回模拟的分析结果
+    return {
+      total_char_count: 45,
+      full_transcription: "这是一个演示模式的分析结果。在演示模式下，我们提供模拟的错别字检测功能。请添加您自己的API密钥以获得真实的分析结果。",
+      confidence_score: 0.85,
+      response_language: request.userLanguage,
+      errors: [
+        {
+          wrong_char: "演",
+          suggested_char: "演",
+          confidence: "HIGH" as const,
+          error_type: "CORRECT" as const,
+          context: "演示模式",
+          position: { line: 1, char: 5 }
+        },
+        {
+          wrong_char: "示",
+          suggested_char: "示",
+          confidence: "HIGH" as const,
+          error_type: "CORRECT" as const,
+          context: "演示模式",
+          position: { line: 1, char: 6 }
+        }
+      ],
+      quality_issues: ["演示模式 - 请添加真实API密钥获得准确结果"]
+    };
   }
 
 

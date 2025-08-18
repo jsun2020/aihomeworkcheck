@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { t } from '../utils/i18n';
 import './Login.css';
 
 interface LoginProps {
@@ -13,6 +14,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [currentLanguage, setCurrentLanguage] = useState<'zh-CN' | 'en-US'>('en-US');
+
+  useEffect(() => {
+    // 检测浏览器语言
+    const browserLanguage = navigator.language;
+    if (browserLanguage.startsWith('zh')) {
+      setCurrentLanguage('zh-CN');
+    } else {
+      setCurrentLanguage('en-US');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,8 +80,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   return (
     <div className="login-container">
       <div className="login-box">
-        <h1>AI Homework Checker</h1>
-        <h2>{isLoginMode ? 'Login' : 'Sign Up'}</h2>
+        <h1>{t('app.title', currentLanguage)}</h1>
+        <h2>{isLoginMode ? t('login.loginButton', currentLanguage) : 'Sign Up'}</h2>
         
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
