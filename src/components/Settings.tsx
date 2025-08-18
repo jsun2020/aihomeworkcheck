@@ -96,7 +96,6 @@ const Settings: React.FC<SettingsProps> = ({ user, onLogout }) => {
     }
 
     if (UsageTracker.isDefaultApiKey(settings.apiKey)) {
-      const usageInfo = UsageTracker.getUsageInfo(user.id);
       setMessage(`${t('settings.demoMode', currentLanguage)} - ${t('settings.usageRemaining', currentLanguage)} ${UsageTracker.getRemainingUsage(user.id)} ${t('settings.times', currentLanguage)}`);
       return;
     }

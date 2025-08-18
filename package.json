@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "AI-powered homework checking web application",
   "private": true,
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
   "dependencies": {
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
@@ -16,6 +20,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:cf": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "deploy": "npm run build",
