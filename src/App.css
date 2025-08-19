@@ -4,7 +4,20 @@
   flex-direction: column;
 }
 
-/* Responsive design */
+/* Responsive design for tablets and phones */
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 20px;
+  }
+  
+  /* iPad specific adjustments */
+  button {
+    min-height: 44px;
+    padding: 12px 20px;
+    font-size: 16px;
+  }
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 0 15px;
@@ -19,5 +32,11 @@
 @media (max-width: 480px) {
   .container {
     padding: 0 10px;
+  }
+  
+  button {
+    padding: 14px 20px;
+    font-size: 16px;
+    min-height: 44px;
   }
 }

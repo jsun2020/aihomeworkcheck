@@ -2,6 +2,7 @@
 // This service handles communication with the Doubao AI model for Chinese text recognition
 
 import { UsageTracker } from '../utils/usageTracker';
+import { APIConfig } from '../config/apiConfig';
 
 interface DoubaoAnalysisRequest {
   imageData: string;
@@ -93,8 +94,9 @@ export class DoubaoAPIService {
   }
 
   static async analyzeHomework(request: DoubaoAnalysisRequest): Promise<DoubaoAnalysisResponse> {
-    // Priority: Custom API key > User's saved key > Environment key
+    // Priority: Custom API key > User's saved key > Demo API key
     let apiKey = request.customApiKey;
+    let isDemoMode = false;
     
     if (!apiKey && request.userId) {
       // Try to get user's saved API key
@@ -105,55 +107,31 @@ export class DoubaoAPIService {
       }
     }
     
-    // Check if using demo mode
+    // Check if using demo mode (first 10 free calls)
     if (!apiKey || UsageTracker.isDefaultApiKey(apiKey)) {
-      console.log('Using demo mode...');
-      return await this.callDemoAPI(request);
+      if (request.userId && UsageTracker.isDemoMode(request.userId)) {
+        console.log('Using Demo Mode with real API for free trial...');
+        isDemoMode = true;
+        // Use your real API key for demo mode
+        apiKey = APIConfig.getDemoAPIKey();
+      } else {
+        // After 10 uses, require user API key or payment
+        throw new Error('Demo mode limit reached. Please add your own API key or purchase more calls.');
+      }
     }
     
     if (!apiKey) {
-      // Fallback to environment key
-      apiKey = process.env.REACT_APP_ARK_API_KEY;
-    }
-    
-    if (!apiKey || apiKey === 'your_ark_api_key_here') {
-      throw new Error('No API key configured. Please set your API key in Settings or contact administrator.');
+      throw new Error('No API key available. Please configure your API key in Settings.');
     }
 
-    console.log('Calling real Doubao API with image data...');
+    console.log(isDemoMode ? 'Calling Doubao API in Demo Mode...' : 'Calling Doubao API with user key...');
     return await this.callRealDoubaoAPI({ ...request, customApiKey: apiKey });
   }
 
+  // This method is no longer used - Demo Mode now uses real API with your key
+  // Kept for backward compatibility
   private static async callDemoAPI(request: DoubaoAnalysisRequest): Promise<DoubaoAnalysisResponse> {
-    // 模拟API调用延迟
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // 返回模拟的分析结果
-    return {
-      total_char_count: 45,
-      full_transcription: "这是一个演示模式的分析结果。在演示模式下，我们提供模拟的错别字检测功能。请添加您自己的API密钥以获得真实的分析结果。",
-      confidence_score: 0.85,
-      response_language: request.userLanguage,
-      errors: [
-        {
-          wrong_char: "演",
-          suggested_char: "演",
-          confidence: "HIGH" as const,
-          error_type: "CORRECT" as const,
-          context: "演示模式",
-          position: { line: 1, char: 5 }
-        },
-        {
-          wrong_char: "示",
-          suggested_char: "示",
-          confidence: "HIGH" as const,
-          error_type: "CORRECT" as const,
-          context: "演示模式",
-          position: { line: 1, char: 6 }
-        }
-      ],
-      quality_issues: ["演示模式 - 请添加真实API密钥获得准确结果"]
-    };
+    throw new Error('Demo mode now uses real API. This fallback should not be called.');
   }
 
 

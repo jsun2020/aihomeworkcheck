@@ -5,6 +5,7 @@ import Login from './components/Login';
 import Upload from './components/Upload';
 import Results from './components/Results';
 import Settings from './components/Settings';
+import Payment from './components/Payment';
 
 interface User {
   id: string;
@@ -88,6 +89,18 @@ function App() {
               <Settings 
                 user={user}
                 onLogout={handleLogout}
+              /> : 
+              <Navigate to="/login" replace />
+            } 
+          />
+          <Route 
+            path="/payment" 
+            element={
+              user ? 
+              <Payment 
+                user={user}
+                onLogout={handleLogout}
+                onPaymentSuccess={() => {}}
               /> : 
               <Navigate to="/login" replace />
             } 

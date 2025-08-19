@@ -92,8 +92,14 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
 
     // 检查使用次数限制
     if (!UsageTracker.canUseService(user.id)) {
-      alert(t('settings.upgradeRequired', currentLanguage));
-      navigate('/settings');
+      const usageInfo = UsageTracker.getUsageInfo(user.id);
+      if (usageInfo.hasCustomKey) {
+        alert(t('settings.upgradeRequired', currentLanguage));
+        navigate('/settings');
+      } else {
+        alert(t('payment.upgradeRequired', currentLanguage));
+        navigate('/payment');
+      }
       return;
     }
 
@@ -146,7 +152,11 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
       
       // 更详细的错误信息
       const errorMessage = error instanceof Error ? error.message : t('upload.analysisFailed', currentLanguage);
-      if (errorMessage.includes('timeout')) {
+      
+      if (errorMessage.includes('Demo mode limit reached')) {
+        alert(`${t('settings.demoMode', currentLanguage)} ${t('settings.upgradeRequired', currentLanguage)}`);
+        navigate('/payment');
+      } else if (errorMessage.includes('timeout')) {
         alert(t('upload.timeoutError', currentLanguage));
       } else {
         alert(errorMessage);
@@ -170,8 +180,11 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
           <span>{t('header.welcome', currentLanguage)}, {user.username}</span>
           {!usageInfo.hasCustomKey && (
             <span className="usage-info">
-              ({t('settings.usageRemaining', currentLanguage)}: {remainingUsage})
+              ({t('settings.demoMode', currentLanguage)}: {remainingUsage}/{usageInfo.maxFreeUsage} {t('settings.times', currentLanguage)})
             </span>
+          )}
+          {!usageInfo.hasCustomKey && remainingUsage <= 5 && (
+            <button onClick={() => navigate('/payment')} className="payment-button">💳 {t('payment.title', currentLanguage)}</button>
           )}
           <button onClick={() => navigate('/settings')} className="settings-button">⚙️ {t('header.settings', currentLanguage)}</button>
           <button onClick={onLogout} className="logout-button">{t('header.logout', currentLanguage)}</button>

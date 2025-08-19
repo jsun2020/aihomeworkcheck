@@ -176,19 +176,21 @@ const Settings: React.FC<SettingsProps> = ({ user, onLogout }) => {
               {showApiKey ? (
                 <div 
                   className="api-key-display"
-                  onCopy={(e) => e.preventDefault()}
-                  onCut={(e) => e.preventDefault()}
-                  onDragStart={(e) => e.preventDefault()}
-                  onContextMenu={(e) => e.preventDefault()}
+                  onCopy={(e: React.ClipboardEvent) => e.preventDefault()}
+                  onCut={(e: React.ClipboardEvent) => e.preventDefault()}
+                  onDragStart={(e: React.DragEvent) => e.preventDefault()}
+                  onContextMenu={(e: React.MouseEvent) => e.preventDefault()}
+                  onMouseDown={(e: React.MouseEvent) => e.preventDefault()}
+                  style={{ userSelect: 'none', WebkitUserSelect: 'none', MozUserSelect: 'none' }}
                 >
                   <span className="masked-key">
-                    {UsageTracker.isDefaultApiKey(settings.apiKey) ? '***' : '•'.repeat(settings.apiKey.length)}
+                    {UsageTracker.getDemoDisplayKey()}
                   </span>
                   <span className="key-info">
                     {UsageTracker.isDefaultApiKey(settings.apiKey) 
-                      ? t('settings.demoMode', currentLanguage)
+                      ? `${t('settings.demoMode', currentLanguage)} (${UsageTracker.getRemainingUsage(user.id)} ${t('settings.times', currentLanguage)} ${t('settings.usageRemaining', currentLanguage).toLowerCase()})`
                       : settings.apiKey 
-                        ? `(${settings.apiKey.length} ${t('settings.charactersCount', currentLanguage)})` 
+                        ? `(${t('settings.customKey', currentLanguage)})` 
                         : t('settings.noKeySet', currentLanguage)
                     }
                   </span>

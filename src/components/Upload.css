@@ -48,7 +48,8 @@
 }
 
 .settings-button,
-.logout-button {
+.logout-button,
+.payment-button {
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -56,10 +57,27 @@
   font-size: 14px;
 }
 
+.payment-button {
+  background: rgba(255, 193, 7, 0.3);
+  border-color: rgba(255, 193, 7, 0.5);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; }
+}
+
 .settings-button:hover,
-.logout-button:hover {
+.logout-button:hover,
+.payment-button:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
+}
+
+.payment-button:hover {
+  background: rgba(255, 193, 7, 0.5);
 }
 
 .upload-main {
