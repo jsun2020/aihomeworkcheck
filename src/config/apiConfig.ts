@@ -1,5 +1,5 @@
 // Secure API Configuration
-// This file contains the real API key for Demo Mode usage
+// API keys are loaded from environment variables for security
 
 // IMPORTANT: This API key is for Demo Mode only (first 10 free uses)
 // After 10 uses, users must either:
@@ -7,15 +7,15 @@
 // 2. Purchase additional calls through the payment system
 
 export class APIConfig {
-  // Your real API key for Demo Mode (encrypted/obfuscated)
-  private static readonly DEMO_API_KEY = 'f2a1e2f1-80c0-4e03-8ab4-3dec3b56b7aa';
+  // API key is now loaded from environment variable for security
+  private static readonly DEMO_API_KEY = process.env.REACT_APP_ARK_API_KEY || '';
   
   // This key should never be visible to end users
   static getDemoAPIKey(): string {
     // Additional security layer - the key is never exposed in plain text to users
     const placeholder = 'YOUR_REAL_API_KEY_HERE' as string;
     if (!this.DEMO_API_KEY || this.DEMO_API_KEY === placeholder) {
-      throw new Error('Demo API key not configured. Please set the real API key.');
+      throw new Error('Demo API key not configured. Please set REACT_APP_ARK_API_KEY environment variable.');
     }
     return this.DEMO_API_KEY;
   }
