@@ -31,6 +31,7 @@ const Results: React.FC<ResultsProps> = ({ user, analysisResult, onLogout }) => 
   const navigate = useNavigate();
   const [currentLanguage, setCurrentLanguage] = useState<'zh-CN' | 'en-US'>('en-US');
 
+
   useEffect(() => {
     setCurrentLanguage(getCurrentLanguage(user.id));
   }, [user.id]);
@@ -114,35 +115,42 @@ const Results: React.FC<ResultsProps> = ({ user, analysisResult, onLogout }) => 
             <div className="errors-section">
               <h3>Character Analysis</h3>
               <div className="errors-list">
-                {analysisResult.errors.map((error, index) => (
-                  <div key={index} className="error-item">
-                    <div className="error-header">
-                      <div className="character-comparison">
-                        <span className="original-char">{error.wrong_char}</span>
-                        {error.error_type !== 'CORRECT' && (
-                          <>
-                            <span className="arrow">→</span>
-                            <span className="suggested-char">{error.suggested_char}</span>
-                          </>
-                        )}
+                {analysisResult.errors && analysisResult.errors.length > 0 ? (
+                  analysisResult.errors.map((error, index) => (
+                    <div key={index} className="error-item">
+                      <div className="error-header">
+                        <div className="character-comparison">
+                          <span className="original-char">{error.wrong_char}</span>
+                          {error.error_type !== 'CORRECT' && (
+                            <>
+                              <span className="arrow">→</span>
+                              <span className="suggested-char">{error.suggested_char}</span>
+                            </>
+                          )}
+                        </div>
+                        <span 
+                          className="confidence-badge"
+                          style={{ backgroundColor: getConfidenceColor(error.confidence) }}
+                        >
+                          {error.confidence}
+                        </span>
                       </div>
-                      <span 
-                        className="confidence-badge"
-                        style={{ backgroundColor: getConfidenceColor(error.confidence) }}
-                      >
-                        {error.confidence}
-                      </span>
+                      <div className="error-details">
+                        <div className="error-type">
+                          <strong>Type:</strong> {getErrorTypeDisplay(error.error_type)}
+                        </div>
+                        <div className="error-context">
+                          <strong>Context:</strong> "{error.context}"
+                        </div>
+                      </div>
                     </div>
-                    <div className="error-details">
-                      <div className="error-type">
-                        <strong>Type:</strong> {getErrorTypeDisplay(error.error_type)}
-                      </div>
-                      <div className="error-context">
-                        <strong>Context:</strong> "{error.context}"
-                      </div>
-                    </div>
+                  ))
+                ) : (
+                  <div className="no-errors-message">
+                    <p>No character errors detected in the analysis. Great job! 🎉</p>
+                    <p>This could also indicate that the image analysis needs more processing time or the handwriting is unclear.</p>
                   </div>
-                ))}
+                )}
               </div>
             </div>
 

@@ -266,17 +266,22 @@
   overflow: hidden;
 }
 
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  width: 0%;
-  animation: progressAnimation 3s ease-in-out infinite;
-}
+/* Removed duplicate - see below for optimized version */
 
 @keyframes progressAnimation {
   0% { width: 0%; }
-  50% { width: 70%; }
+  25% { width: 30%; }
+  50% { width: 60%; }
+  75% { width: 85%; }
   100% { width: 100%; }
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  width: 0%;
+  animation: progressAnimation 2s ease-out infinite; /* Faster animation */
+  transition: all 0.3s ease;
 }
 
 /* Mobile responsiveness */

@@ -11,6 +11,11 @@
 # production
 /build
 
+# documents
+CLAUDE.md
+Project Requirements.md
+prompt for Chinese.md
+
 # misc
 .DS_Store
 .env

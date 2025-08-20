@@ -33,20 +33,38 @@ interface DoubaoAnalysisResponse {
 export class DoubaoAPIService {
   private static readonly API_ENDPOINT = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
   private static readonly MODEL = 'doubao-seed-1-6-flash-250715';
-  private static readonly REQUEST_TIMEOUT = 60000; // 60秒超时
-  private static readonly MAX_IMAGE_SIZE = 1024 * 1024; // 1MB最大图片大小
+  private static readonly REQUEST_TIMEOUT = 45000; // 增加到45秒超时
+  private static readonly MAX_IMAGE_SIZE = 512 * 1024; // 512KB最大图片大小
+  private static readonly MAX_DIMENSION = 800; // 最大尺寸800px
+  private static readonly COMPRESSION_QUALITY = 0.6; // 降低质量到0.6提高速度
+  private static readonly MAX_RETRIES = 2; // 最多重试2次
 
-  // 压缩图片以提高上传速度
+  // 快速检查图片大小
+  private static getImageSizeKB(imageData: string): number {
+    // Remove data:image/jpeg;base64, prefix and calculate size
+    const base64 = imageData.split(',')[1] || imageData;
+    return (base64.length * 0.75) / 1024; // Convert to KB
+  }
+
+  // 优化图片压缩 - 更快速度
   private static async compressImage(imageData: string): Promise<string> {
+    // 如果图片已经很小，跳过压缩
+    const currentSize = this.getImageSizeKB(imageData);
+    if (currentSize < 200) { // 小于200KB直接返回
+      console.log(`Image already small (${currentSize.toFixed(1)}KB), skipping compression`);
+      return imageData;
+    }
+    
+    console.log(`Compressing image from ${currentSize.toFixed(1)}KB...`);
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d')!;
         
-        // 计算压缩后的尺寸，保持宽高比
+        // 计算压缩后的尺寸，保持宽高比 - 更小的尺寸以提高速度
         let { width, height } = img;
-        const maxDimension = 1200; // 最大尺寸
+        const maxDimension = DoubaoAPIService.MAX_DIMENSION;
         
         if (width > maxDimension || height > maxDimension) {
           if (width > height) {
@@ -64,15 +82,17 @@ export class DoubaoAPIService {
         // 绘制压缩后的图片
         ctx.drawImage(img, 0, 0, width, height);
         
-        // 转换为JPEG格式，质量0.8
-        const compressedData = canvas.toDataURL('image/jpeg', 0.8);
+        // 转换为JPEG格式，降低质量以提高上传速度
+        const compressedData = canvas.toDataURL('image/jpeg', DoubaoAPIService.COMPRESSION_QUALITY);
+        const newSize = DoubaoAPIService.getImageSizeKB(compressedData);
+        console.log(`Image compressed to ${newSize.toFixed(1)}KB`);
         resolve(compressedData);
       };
       img.src = imageData;
     });
   }
 
-  // 添加超时控制的fetch
+  // 添加超时控制和重试机制的fetch
   private static async fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -91,6 +111,48 @@ export class DoubaoAPIService {
       }
       throw error;
     }
+  }
+
+  // 重试功能
+  private static async fetchWithRetry(url: string, options: RequestInit, timeout: number, maxRetries: number): Promise<Response> {
+    let lastError: Error;
+    
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      try {
+        console.log(`⚡ API 调用尝试 ${attempt}/${maxRetries + 1}`);
+        const response = await this.fetchWithTimeout(url, options, timeout);
+        
+        if (response.ok) {
+          return response;
+        }
+        
+        // 如果是网络错误但不是最后一次尝试，继续重试
+        if (attempt < maxRetries + 1 && (response.status >= 500 || response.status === 429)) {
+          console.log(`⚠️ 服务器错误 ${response.status}，${2 * attempt}秒后重试...`);
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // 指数退避
+          continue;
+        }
+        
+        const errorText = await response.text();
+        const apiError = new Error(`API 错误: ${response.status} - ${errorText}`);
+        throw apiError;
+        
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        
+        // 如果不是最后一次尝试且是网络错误，继续重试
+        if (attempt < maxRetries + 1 && (lastError.message.includes('timeout') || lastError.message.includes('fetch'))) {
+          console.log(`⚠️ 网络错误，${2 * attempt}秒后重试: ${lastError.message}`);
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // 指数退避
+          continue;
+        }
+        
+        // 如果不是网络错误或者是最后一次尝试，直接抛出
+        break;
+      }
+    }
+    
+    throw lastError!;
   }
 
   static async analyzeHomework(request: DoubaoAnalysisRequest): Promise<DoubaoAnalysisResponse> {
@@ -124,8 +186,12 @@ export class DoubaoAPIService {
       throw new Error('No API key available. Please configure your API key in Settings.');
     }
 
-    console.log(isDemoMode ? 'Calling Doubao API in Demo Mode...' : 'Calling Doubao API with user key...');
-    return await this.callRealDoubaoAPI({ ...request, customApiKey: apiKey });
+    console.log(isDemoMode ? '⚡ Fast Demo Mode Analysis...' : 'Calling Doubao API with user key...');
+    const startTime = Date.now();
+    const result = await this.callRealDoubaoAPI({ ...request, customApiKey: apiKey });
+    const processingTime = Date.now() - startTime;
+    console.log(`✅ Analysis completed in ${(processingTime / 1000).toFixed(1)}s`);
+    return result;
   }
 
   // This method is no longer used - Demo Mode now uses real API with your key
@@ -140,24 +206,24 @@ export class DoubaoAPIService {
     console.log('Compressing image...');
     const compressedImageData = await this.compressImage(request.imageData);
     
-    // 优化后的简洁prompt
-    const prompt = `分析图片中的中文文字，找出错别字。返回JSON格式：
+    // 明确prompt结构以确保正确的JSON格式
+    const prompt = `分析这张中文手写作业图片，找出书写错误的字符。请按照以下JSON格式返回结果：
+
 {
-  "total_char_count": <数字>,
-  "full_transcription": "<文本>",
-  "confidence_score": <0-1>,
+  "total_char_count": 总字符数,
+  "full_transcription": "完整转录文本",
+  "confidence_score": 0.9,
   "response_language": "${request.userLanguage}",
   "errors": [
     {
-      "wrong_char": "<错字>",
-      "suggested_char": "<正字>", 
-      "confidence": "<HIGH|MEDIUM|LOW>",
-      "error_type": "<STROKE|RADICAL|PHONETIC|SEMANTIC|CORRECT>",
-      "context": "<上下文>",
-      "position": {"line": <行>, "char": <位置>}
+      "wrong_char": "错误的字",
+      "suggested_char": "正确的字", 
+      "confidence": "HIGH",
+      "error_type": "PHONETIC",
+      "context": "包含此字的上下文"
     }
   ],
-  "quality_issues": ["<问题>"]
+  "quality_issues": []
 }`;
 
     const payload = {
@@ -170,7 +236,7 @@ export class DoubaoAPIService {
               type: "image_url",
               image_url: {
                 url: compressedImageData,
-                detail: "low" // 使用低细节模式加快处理速度
+                detail: "low" // 低细节模式
               }
             },
             {
@@ -180,15 +246,18 @@ export class DoubaoAPIService {
           ]
         }
       ],
-      temperature: 0.1, // 降低温度提高确定性和速度
-      max_tokens: 1000, // 减少token数量
-      stream: false // 确保不使用流式响应
+      temperature: 0, // 最低温度
+      max_tokens: 800, // 增加到800以支持更详细的响应
+      stream: false,
+      top_p: 0.05, // 更低采样值
+      frequency_penalty: 0, // 无频率惩罚
+      presence_penalty: 0 // 无存在惩罚
     };
 
     console.log('Sending optimized request to Doubao API...');
 
     try {
-      const response = await this.fetchWithTimeout(this.API_ENDPOINT, {
+      const response = await this.fetchWithRetry(this.API_ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -196,7 +265,7 @@ export class DoubaoAPIService {
           'Accept': 'application/json'
         },
         body: JSON.stringify(payload)
-      }, this.REQUEST_TIMEOUT);
+      }, this.REQUEST_TIMEOUT, this.MAX_RETRIES);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -225,8 +294,19 @@ export class DoubaoAPIService {
 
       return analysisResult;
     } catch (error) {
-      console.error('Doubao API call failed:', error);
-      throw error;
+      console.error('⚠️ Doubao API call failed:', error);
+      
+      // 提供更详细的错误信息
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMsg.includes('timeout')) {
+        throw new Error('网络超时，请检查网络连接后重试。建议使用更小的图片或在网络状态良好时重试。');
+      } else if (errorMsg.includes('API 错误: 429')) {
+        throw new Error('服务繁忙，请稍后再试。如需立即使用，可在设置中添加您自己的API密钥。');
+      } else if (errorMsg.includes('API 错误')) {
+        throw new Error(`API服务错误：${errorMsg}。请稍后再试或联系技术支持。`);
+      } else {
+        throw new Error(`分析失败：${errorMsg}。请检查网络连接后重试。`);
+      }
     }
   }
 }

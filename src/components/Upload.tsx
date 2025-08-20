@@ -35,6 +35,7 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
   const [analysisStep, setAnalysisStep] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState<'zh-CN' | 'en-US'>('en-US');
+  const [startTime, setStartTime] = useState<number>(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,6 +47,20 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
     if (file && file.type.startsWith('image/')) {
       // Clear any previous analysis results
       onNewAnalysisStarted();
+      
+      // Check file size and warn if too large
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (fileSizeMB > 5) {
+        // eslint-disable-next-line no-restricted-globals
+        const shouldContinue = confirm(`⚠️ 图片较大 (${fileSizeMB.toFixed(1)}MB)\n可能影响分析速度和成功率。\n\n💡 建议：\n- 使用小于2MB的图片\n- 确保网络连接稳定\n\n是否继续上传？`);
+        if (!shouldContinue) {
+          return;
+        }
+      } else if (fileSizeMB > 2) {
+        console.log(`⚡ 图片大小: ${fileSizeMB.toFixed(1)}MB - 将自动优化以提高速度`);
+      } else {
+        console.log(`✅ 图片大小适中: ${fileSizeMB.toFixed(1)}MB - 预计快速分析`);
+      }
       
       setSelectedFile(file);
       const reader = new FileReader();
@@ -104,14 +119,19 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
     }
 
     setAnalyzing(true);
-    setAnalysisStep(t('upload.preparingImage', currentLanguage));
-
+    setStartTime(Date.now());
+    setAnalysisStep(t('upload.fastProcessing', currentLanguage));
+    
     try {
       // Get user's language preference from localStorage
       const savedSettings = localStorage.getItem(`userSettings_${user.id}`);
       const userLanguage = savedSettings ? JSON.parse(savedSettings).language || 'en-US' : 'en-US';
       
-      setAnalysisStep(t('upload.sendingToAI', currentLanguage));
+      // Show compression step with time update
+      setAnalysisStep('🗜️ 优化图片中...');
+      await new Promise(resolve => setTimeout(resolve, 300)); // Brief delay to show step
+      
+      setAnalysisStep('🚀 AI极速分析中...');
       
       // Call Doubao API service
       const analysisResult = await DoubaoAPIService.analyzeHomework({
@@ -120,7 +140,7 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
         userId: user.id
       });
 
-      setAnalysisStep(t('upload.processingResults', currentLanguage));
+      setAnalysisStep('⚙️ 处理结果中...');
 
       // 增加使用次数（只有在使用演示模式时才计数）
       const usageInfo = UsageTracker.getUsageInfo(user.id);
@@ -142,6 +162,8 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
       };
 
       onAnalysisComplete(result);
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`✅ Total analysis time: ${totalTime}s`);
       setAnalyzing(false);
       setAnalysisStep('');
       navigate('/results');
@@ -156,10 +178,16 @@ const Upload: React.FC<UploadProps> = ({ user, onLogout, onAnalysisComplete, onN
       if (errorMessage.includes('Demo mode limit reached')) {
         alert(`${t('settings.demoMode', currentLanguage)} ${t('settings.upgradeRequired', currentLanguage)}`);
         navigate('/payment');
-      } else if (errorMessage.includes('timeout')) {
-        alert(t('upload.timeoutError', currentLanguage));
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('Request timeout')) {
+        alert(`⚠️ 网络超时\n请检查网络连接后重试。\n如问题持续，请稍后再试或检查图片大小。`);
+      } else if (errorMessage.includes('API 错误: 429')) {
+        alert(`⚠️ 服务繁忙\n请稍后再试，或在设置中使用您自己的API密钥。`);
+      } else if (errorMessage.includes('API 错误: 5')) {
+        alert(`⚠️ 服务器错误\n请稍后再试。如问题持续，请联系技术支持。`);
+      } else if (errorMessage.includes('fetch')) {
+        alert(`⚠️ 网络连接错误\n请检查您的网络连接并重试。`);
       } else {
-        alert(errorMessage);
+        alert(`⚠️ 分析失败\n${errorMessage}\n请稍后重试或联系技术支持。`);
       }
     }
   };
