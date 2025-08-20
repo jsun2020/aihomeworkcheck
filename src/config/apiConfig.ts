@@ -23,7 +23,7 @@ export class APIConfig {
   // Check if we have a valid demo API key configured
   static hasDemoAPIKey(): boolean {
     const placeholder = 'YOUR_REAL_API_KEY_HERE' as string;
-    return this.DEMO_API_KEY && this.DEMO_API_KEY !== placeholder;
+    return Boolean(this.DEMO_API_KEY && this.DEMO_API_KEY !== placeholder);
   }
   
   // Get display version of API key (always shows as ***)
