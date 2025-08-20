@@ -115,7 +115,7 @@ export class DoubaoAPIService {
 
   // 重试功能
   private static async fetchWithRetry(url: string, options: RequestInit, timeout: number, maxRetries: number): Promise<Response> {
-    let lastError: Error;
+    let lastError: Error = new Error('Request failed after all retries');
     
     for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
       try {
@@ -152,7 +152,7 @@ export class DoubaoAPIService {
       }
     }
     
-    throw lastError!;
+    throw lastError;
   }
 
   static async analyzeHomework(request: DoubaoAnalysisRequest): Promise<DoubaoAnalysisResponse> {

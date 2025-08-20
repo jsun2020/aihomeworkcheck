@@ -58,9 +58,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     // Simulate API call
     setTimeout(() => {
-      // Mock successful login/registration
+      // Mock successful login/registration - use consistent user ID based on username
       const userData = {
-        id: Date.now().toString(),
+        id: `user_${username}`,
         username: username
       };
       onLogin(userData);
